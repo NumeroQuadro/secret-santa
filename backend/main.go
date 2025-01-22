@@ -300,18 +300,25 @@ func (s *Server) uploadFileToFrostFS(ctx context.Context, fileContent []byte, fi
 		return fmt.Errorf("put object: %w", err)
 	}
 
-	fmt.Println(objID.ObjectID)
+	fmt.Println("object id to upload into frostfs: ", objID.ObjectID)
 
 	frostFSAddr := s.cnrID.EncodeToString() + "/" + objID.ObjectID.EncodeToString()
 	s.log.Info("Object uploaded to FrostFS", zap.String("address", frostFSAddr))
+
+	ownerHash, err := util.Uint160DecodeStringLE(ownerID.EncodeToString())
+	if err != nil {
+		return fmt.Errorf("unable to convert ownerID from []byte into string: %w", err)
+	}
+
+	fmt.Println("owner hash: ", ownerHash)
 
 	// Call the smart contract's AddDocument method
 	result, err := s.act.Call(
 		s.contractHash,
 		"addDocument",
-		ownerID.WalletBytes(), // Convert ownerID to []byte
-		filename,              // Document name
-		fileContent,           // Document content
+		ownerHash,   // Convert ownerID to []byte
+		filename,    // Document name
+		fileContent, // Document content
 	)
 	if err != nil {
 		return fmt.Errorf("invoke AddDocument: %w", err)
